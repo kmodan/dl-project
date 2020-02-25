@@ -102,8 +102,12 @@ def get_model(args):
         n_units.append(args.num_classes)  # output dim
         n_units.insert(0, 32 * 32 * 3)  # input dim
         model = model_mlp.MLP(n_units)
-    elif args.arch == 'resnet':
+    elif args.arch == 'resnet18':
         model = model_resnet.resnet18(args.num_classes)
+    elif args.arch == 'resnet34':
+        model = model_resnet.resnet34(args.num_classes)
+    elif args.arch == 'resnet50':
+        model = model_resnet.resnet50(args.num_classes)
 
     # for training on multiple GPUs.
     # Use CUDA_VISIBLE_DEVICES=0,1 to specify which GPUs to use

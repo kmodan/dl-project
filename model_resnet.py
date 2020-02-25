@@ -226,26 +226,24 @@ def resnet18(num_classes):
     return ResNet(block=BasicBlock, layers=[2, 2, 2, 2], num_classes=num_classes)
 
 
-def resnet34(pretrained=False, progress=True, **kwargs):
+def resnet34(num_classes):
     r"""ResNet-34 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet('resnet34', BasicBlock, [3, 4, 6, 3], pretrained, progress,
-                   **kwargs)
+    return ResNet(block=BasicBlock, layers=[3, 4, 6, 3], num_classes=num_classes)
 
 
-def resnet50(pretrained=False, progress=True, **kwargs):
+def resnet50(num_classes):
     r"""ResNet-50 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet('resnet50', Bottleneck, [3, 4, 6, 3], pretrained, progress,
-                   **kwargs)
+    return ResNet(block=Bottleneck, layers=[3, 4, 6, 3], num_classes=num_classes)
 
 
 def resnet101(pretrained=False, progress=True, **kwargs):
