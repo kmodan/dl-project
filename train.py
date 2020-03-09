@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import os
+import shutil
 import logging
 import numpy as np
 import torch
@@ -13,7 +14,10 @@ from cifar10_data import CIFAR10RandomLabels
 from cifar100_data import CIFAR100RandomLabels
 
 import cmd_args
-import model_mlp, model_wideresnet, model_resnet
+import model_mlp, model_wideresnet, model_resnet, model_vgg
+
+best_prec1 = 0
+best_score = None
 
 
 def get_data_loaders(args, shuffle_train=True):
@@ -108,6 +112,8 @@ def get_model(args):
         model = model_resnet.resnet34(args.num_classes)
     elif args.arch == 'resnet50':
         model = model_resnet.resnet50(args.num_classes)
+    elif args.arch == 'vgg16':
+        model = model_vgg.vgg16(args.num_classes)
 
     # for training on multiple GPUs.
     # Use CUDA_VISIBLE_DEVICES=0,1 to specify which GPUs to use
@@ -117,8 +123,10 @@ def get_model(args):
     return model
 
 
-def train_model(args, model, train_loader, val_loader,
+def train_model(args, model, train_loader, val_loader, exp_dir,
                 start_epoch=None, epochs=None):
+    global best_prec1
+    global best_score
     cudnn.benchmark = True
 
     # define loss function (criterion) and pptimizer
@@ -129,6 +137,10 @@ def train_model(args, model, train_loader, val_loader,
 
     start_epoch = start_epoch or 0
     epochs = epochs or args.epochs
+
+    patience = 7
+    counter = 0
+    early_stop = False
 
     for epoch in range(start_epoch, epochs):
         adjust_learning_rate(optimizer, epoch, args)
@@ -144,6 +156,34 @@ def train_model(args, model, train_loader, val_loader,
 
         logging.info('%03d: Acc-tr: %6.2f, Acc-val: %6.2f, L-tr: %6.4f, L-val: %6.4f',
                      epoch, tr_prec1, val_prec1, tr_loss, val_loss)
+
+        # EarlyStooping
+        # score = -val_loss
+        #
+        # if best_score is None:
+        #     best_score = score
+        # elif score < best_score:
+        #     counter += 1
+        #     print(f'EarlyStopping counter: {counter} out of {patience}')
+        #     if counter >= patience:
+        #         early_stop = True
+        # else:
+        #     best_score = score
+        #     counter = 0
+
+        # remember best acc@1 and save checkpoint
+        is_best = val_prec1 > best_prec1
+        best_prec1 = max(val_prec1, best_prec1)
+        save_checkpoint({
+            'epoch': epoch + 1,
+            'arch': args.arch,
+            'state_dict': model.state_dict(),
+            'best_prec1': best_prec1,
+            'optimizer': optimizer.state_dict(),
+        }, is_best, exp_dir)
+
+        if early_stop:
+            return
 
 
 def train_epoch(train_loader, model, criterion, optimizer, epoch, args):
@@ -203,6 +243,13 @@ def validate_epoch(val_loader, model, criterion, epoch, args):
             top1.update(prec1.item(), input.size(0))
 
     return losses.avg, top1.avg
+
+
+def save_checkpoint(state, is_best, exp_dir):
+    filename = os.path.join(exp_dir, 'checkpoint.pt')
+    torch.save(state, filename)
+    if is_best:
+        shutil.copyfile(filename, os.path.join(exp_dir, 'model_best.pt'))
 
 
 class AverageMeter(object):
@@ -269,8 +316,8 @@ def main():
         train_loader, val_loader = get_data_loaders(args, shuffle_train=True)
         model = get_model(args)
         logging.info('Number of parameters: %d', sum([p.data.nelement() for p in model.parameters()]))
-        train_model(args, model, train_loader, val_loader)
         exp_dir = os.path.join('runs', args.exp_name)
+        train_model(args, model, train_loader, val_loader, exp_dir)
         weights_name = '_'.join([str(i) for i in list(vars(args).values())[:-2]])
         weights_dir = os.path.join(exp_dir, weights_name + '.pt')
         torch.save(model.state_dict(), weights_dir)

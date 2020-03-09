@@ -18,7 +18,7 @@ parser.add_argument('--eval-full-trainset', type=bool, default=True,
                     help='Whether to re-evaluate the full train set on a fixed model, or simply ' +
                     'report the running average of training statistics')
 
-parser.add_argument('--arch', default='wide-resnet', choices=['wide-resnet', 'mlp', 'resnet18', 'resnet34', 'resnet50'])
+parser.add_argument('--arch', default='wide-resnet', choices=['wide-resnet', 'mlp', 'resnet18', 'resnet34', 'resnet50', 'vgg16'])
 
 parser.add_argument('--wrn-depth', type=int, default=28)
 parser.add_argument('--wrn-widen-factor', type=int, default=1)
